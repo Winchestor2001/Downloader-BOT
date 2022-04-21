@@ -1,0 +1,12 @@
+[Unit]
+After=network.target
+Description=PoiskMuz
+
+[Service]
+Type=simple
+WorkingDirectory=/root/TG-BOTS/PM
+ExecStart=/root/TG-BOTS/PM/env/bin/python3.9 app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
