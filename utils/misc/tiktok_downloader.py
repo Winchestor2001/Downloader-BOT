@@ -2,7 +2,6 @@ import requests
 import re
 import asyncio
 import aiohttp
-import aiofiles
 
 
 

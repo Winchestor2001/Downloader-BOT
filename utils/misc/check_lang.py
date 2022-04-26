@@ -113,3 +113,32 @@ async def checkingUserLangFunc(user_id, key, first_name=None):
         elif user_lang.lang == 'en':
             return wrong_url_en
 
+
+    elif key == 'please_wait':
+        if user_lang.lang == 'uz':
+            return please_wait_uz
+
+        elif user_lang.lang == 'ru':
+            return please_wait_ru
+
+        elif user_lang.lang == 'tr':
+            return please_wait_tr
+
+        elif user_lang.lang == 'en':
+            return please_wait_en
+
+
+    elif key == 'uploading':
+        if user_lang.lang == 'uz':
+            return uploading_video_uz
+
+        elif user_lang.lang == 'ru':
+            return uploading_video_ru
+
+        elif user_lang.lang == 'tr':
+            return uploading_video_tr
+
+        elif user_lang.lang == 'en':
+            return uploading_video_en
+
+

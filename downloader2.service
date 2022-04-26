@@ -1,0 +1,12 @@
+[Unit]
+After=network.target
+Description=downloader2
+
+[Service]
+Type=simple
+WorkingDirectory=/root/TG-BOTS/Uzbsavebot
+ExecStart=/root/TG-BOTS/Uzbsavebot/env/bin/python3.9 app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

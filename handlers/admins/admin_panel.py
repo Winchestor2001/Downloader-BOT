@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from aiogram.utils.exceptions import BotBlocked, TelegramAPIError
@@ -9,7 +10,7 @@ from keyboards.inline.channels_btn import add_channel_btn, add_admin_btn, send_p
 from loader import dp, bot
 from database.connection import *
 from aiogram.dispatcher.filters.builtin import Command
-from data.config import ADMINS
+from data.config import ADMINS, user_bot_id
 from states.admin_states import AdminStates
 from aiogram.dispatcher import FSMContext
 
@@ -20,6 +21,7 @@ import sqlite3 as sql
 async def admin_panel_handler(message: Message):
     user_id = message.from_user.id
     admins_list = []
+    today_date = datetime.datetime.now().strftime("%d/%m/%Y")
 
     with db:
         db_admins = Admins.select()
@@ -28,7 +30,7 @@ async def admin_panel_handler(message: Message):
         users_lang_ru = Users.select().where(Users.lang == 'ru').count()
         users_lang_tr = Users.select().where(Users.lang == 'tr').count()
         users_lang_en = Users.select().where(Users.lang == 'en').count()
-        songs = Songs_Db.select().count()
+        today_add_users = Users.select().where(Users.data == today_date).count()
         for da in db_admins:
             admins_list.append(str(da.admin_id))
 
@@ -40,81 +42,31 @@ async def admin_panel_handler(message: Message):
                              f"RU: {users_lang_ru} ta\n"
                              f"TR: {users_lang_tr} ta\n"
                              f"EN: {users_lang_en} ta\n\n"
-                             f"Qushiqlar soni: {songs} ta", reply_markup=admin_panel)
+                             f"Bugun qushilgan a`zolar soni: {today_add_users} ta", reply_markup=admin_panel)
 
 
-@dp.message_handler(Command('save_songs'))
-async def save_songs_handler(message: Message):
-    con = sql.connect('database/botdb.db')
-    cur = con.cursor()
-    num = 0
-    songs = cur.execute("SELECT * FROM songs_db").fetchall()
-    for song in songs:
-        if num < 10000:
-            with open('songs.txt', 'a', encoding='utf-8') as f:
-                f.write(f"{song[0]}$${song[1]}$${song[2]}$${song[3]}$${song[4]}$${song[5]}\n")
-                num += 1
-        else:
-            with open('songs-2.txt', 'a', encoding='utf-8') as f:
-                f.write(f"{song[0]}$${song[1]}$${song[2]}$${song[3]}$${song[4]}$${song[5]}\n")
-                num += 1
+@dp.message_handler(Command('add_users'))
+async def add_users_handler(message: Message):
+    user_id = message.from_user.id
+    admins_list = []
 
+    with db:
+        db_admins = Admins.select()
+        for da in db_admins:
+            admins_list.append(str(da.admin_id))
 
-# @dp.message_handler(Command('save_users'))
-# async def save_users_handler(message: Message):
-#     con = sql.connect('database/botdb.db')
-#     cur = con.cursor()
-#     users = cur.execute("SELECT * FROM users").fetchall()
-#     for user in users:
-#         with open('users.txt', 'a', encoding='utf-8') as f:
-#             f.write(f"{user[1]}$${user[2]}$${user[3]}\n")
-#
-#     await message.answer('Users saved to DB')
+    if str(user_id) in ADMINS or str(user_id) in admins_list:
+        with open('users.txt', 'r', encoding="utf-8") as f:
+            lines = f.readlines()
+        for users in lines:
+            user = users.strip().split(':')
+            with db:
+                Users.insert(user_id=user[0], first_name=user[1],
+                                       lang=user[2]).on_conflict(conflict_target=(Users.user_id,),
+                                                              preserve=(Users.first_name,),
+                                                              update={Users.user_id: user[0]}).execute()
+            await asyncio.sleep(1)
 
-
-@dp.message_handler(Command('go_users'))
-async def go_users_handler(message: Message):
-    with open('users.txt', 'r', encoding='utf-8') as f:
-        data = f.readlines()
-    num = 0
-    for d in data:
-        dd = d.strip().split("$$")
-        print(num)
-        with db:
-            num += 1
-            Users.insert(user_id=int(dd[0]), first_name=dd[1],
-                                   lang=dd[2]).on_conflict(conflict_target=(Users.user_id,),
-                                                          preserve=(Users.first_name, Users.lang),
-                                                          update={Users.user_id: int(dd[0])}).execute()
-    await message.answer(f"Done - {num}")
-
-
-@dp.message_handler(Command('go_songs'))
-async def go_songs_handler(message: Message):
-    msg = message.text.split(" ")
-
-    if msg[1] != '2':
-        with open('songs.txt', 'r', encoding='utf-8') as f:
-            data = f.readlines()
-
-        for d in data:
-            dd = d.strip().split("$$")
-            if dd[-1] != '00:00':
-                with db:
-                    Songs_Db.get_or_create(song_id=dd[0], song_token=dd[1], song_title=dd[2], song_subtitle=dd[3], song_size=dd[4], song_duration=dd[5])
-
-    elif msg[1] == '2':
-        with open('songs-2.txt', 'r', encoding='utf-8') as f:
-            data = f.readlines()
-
-        for d in data:
-            dd = d.strip().split("$$")
-            if dd[-1] != '00:00':
-                with db:
-                    Songs_Db.get_or_create(song_id=dd[0], song_token=dd[1], song_title=dd[2], song_subtitle=dd[3],
-                                           song_size=dd[4], song_duration=dd[5])
-
-    await message.answer('Songs saved to DB')
 
 
 
@@ -340,6 +292,28 @@ async def del_admin_handler(c: CallbackQuery):
         add_admin_btn.add(add_btn)
 
     await c.message.edit_reply_markup(add_admin_btn)
+
+
+
+
+@dp.message_handler(content_types=['video'])
+async def videos_save_to_db(message: Message):
+    user_id = message.from_user.id
+    BOT_NAME = await bot.get_me()
+
+    if user_id == user_bot_id:
+        video_id = message.video.file_id
+        video_caption = message.caption
+
+        title = video_caption.split("\n")[0]
+        user = video_caption.split("\n")[1]
+        await bot.send_video(user, video_id, caption=f"<em>{title}</em>\n\n<b><a href='https://t.me/{BOT_NAME.username}'>{BOT_NAME.first_name}</a> - Tez va oson yuklovchi bot!</b>",)
+
+        with db:
+            Youtube_Videos.get_or_create(video_name=title, video_id=video_id)
+            VideosQueue.delete().where(VideosQueue.user_id == user).execute()
+
+
 
 
 

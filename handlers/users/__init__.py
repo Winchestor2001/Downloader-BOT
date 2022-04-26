@@ -1,2 +1,2 @@
 from . import welcome
-from . import shazaming
+from . import download_videos
