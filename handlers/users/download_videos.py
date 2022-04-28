@@ -168,6 +168,8 @@ async def text_handler(message: Message):
                     result = await checkingUserLangFunc(user_id, 'please_wait')
                     await message.answer(result)
                     print(f'{type(ex).__name__}: {ex} | Line: {sys.exc_info()[-1].tb_lineno}')
+                    with db:
+                        VideosQueue.delete().where(VideosQueue.user_id == user_id).execute()
                     # await bot.send_message(user_id='591250245', text=f'{type(ex).__name__}: {ex} | Line: {sys.exc_info()[-1].tb_lineno}')
 
 

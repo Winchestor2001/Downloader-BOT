@@ -19,10 +19,9 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 name = 'anon'
-api_id = 9688651
-api_hash = "445951faebe243cbe421920770c1ebf8"
-# bot_link = '@poiskmuzikabot'
-bot_link = '@uzbsavebot'
+api_id = 12083236
+api_hash = "58f190be15abc1338f2de30d06b679d3"
+bot_link = '@poiskmuzikabot'
 
 client = TelegramClient(name, api_id, api_hash)
 client.start()
@@ -38,23 +37,27 @@ async def send_large_video():
                 data.append(v.user_id)
                 data.append(v.duration)
                 data.append(v.post_id)
-        await client.send_file(bot_link, file=f'videos/{data[2]}.mp4', caption=f"{data[1]}\n{data[2]}",
+        bl = await client.get_entity(bot_link)
+        await client.send_file(bl.id, file=f'videos/{data[2]}.mp4', caption=f"{data[1]}\n{data[2]}",
                                attributes=(DocumentAttributeVideo(duration=int(data[3]), w=0, h=0),))
         # print('Uploaded')
+        # nl = await client.get_entity(bot_link)
         # await client.send_message(bot_link, '/start')
         # await bot.delete_message(data[2], data[4])
 
         os.unlink(f'videos/{data[2]}.mp4')
         data.clear()
 
-    except ValueError:
+    except ValueError as eee:
+        # print(eee)
         pass
-    except IndexError:
+    except IndexError as eee:
+        # print(eee)
         pass
     except errors.FloodWaitError as e:
         await client.send_message('me', f"Flood wait for {e.seconds}")
     except Exception as ex:
-        # print(f'{type(ex).__name__}: {ex} | Line: {sys.exc_info()[-1].tb_lineno}')
+        print(f'{type(ex).__name__}: {ex} | Line: {sys.exc_info()[-1].tb_lineno}')
         pass
 
 

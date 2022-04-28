@@ -1,0 +1,12 @@
+[Unit]
+After=network.target
+Description=downloader
+
+[Service]
+Type=simple
+WorkingDirectory=/root/TG-BOTS/VideosDownloader/media
+ExecStart=/root/TG-BOTS/VideosDownloader/env/bin/python3.9 user_bot.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
