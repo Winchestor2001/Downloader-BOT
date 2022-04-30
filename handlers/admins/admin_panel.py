@@ -22,7 +22,7 @@ async def admin_panel_handler(message: Message):
     user_id = message.from_user.id
     admins_list = []
     today_date = datetime.datetime.now().strftime("%d/%m/%Y")
-
+    videos = 0
     with db:
         db_admins = Admins.select()
         users = Users.select().count()
@@ -33,6 +33,7 @@ async def admin_panel_handler(message: Message):
         today_add_users = Users.select().where(Users.data == today_date).count()
         for da in db_admins:
             admins_list.append(str(da.admin_id))
+        videos = Youtube_Videos.select().count()
 
 
     if str(user_id) in ADMINS or str(user_id) in admins_list:
@@ -42,10 +43,11 @@ async def admin_panel_handler(message: Message):
                              f"RU: {users_lang_ru} ta\n"
                              f"TR: {users_lang_tr} ta\n"
                              f"EN: {users_lang_en} ta\n\n"
-                             f"Bugun qushilgan a`zolar soni: {today_add_users} ta", reply_markup=admin_panel)
+                             f"Bugun qushilgan a`zolar soni: {today_add_users} ta\n\n"
+                             f"Youtube dan tortilgan videolar soni: {videos}", reply_markup=admin_panel)
 
 
-@dp.message_handler(Command('add_users'))
+@dp.message_handler(Command('queue'))
 async def add_users_handler(message: Message):
     user_id = message.from_user.id
     admins_list = []
@@ -56,17 +58,11 @@ async def add_users_handler(message: Message):
             admins_list.append(str(da.admin_id))
 
     if str(user_id) in ADMINS or str(user_id) in admins_list:
-        with open('users.txt', 'r', encoding="utf-8") as f:
-            lines = f.readlines()
-        for users in lines:
-            user = users.strip().split(':')
-            with db:
-                Users.insert(user_id=user[0], first_name=user[1],
-                                       lang=user[2]).on_conflict(conflict_target=(Users.user_id,),
-                                                              preserve=(Users.first_name,),
-                                                              update={Users.user_id: user[0]}).execute()
-            await asyncio.sleep(1)
+        queues = 0
+        with db:
+            queues = VideosQueue.select().count()
 
+        await message.answer(f"Yuknalyotgan videolar soni: {queues} ta")
 
 
 

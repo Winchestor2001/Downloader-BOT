@@ -12,31 +12,36 @@ from keyboards.inline.callback_datas import lang_callback
 import datetime
 
 
-@dp.message_handler(CommandStart())
+@dp.message_handler(commands=['start'])
 async def bot_start(message: Message):
     # await message.answer("Texnik ishlar olib borilyabti iltimos birozdang so`ng urinib kuring!")
-
-    with db:
-        result = (Users.insert(user_id=message.from_user.id, first_name=message.from_user.first_name, lang='no', data=str(datetime.datetime.now().strftime("%d/%m/%Y"))).on_conflict(conflict_target=(Users.user_id,),preserve=(Users.first_name,),update={Users.user_id: message.from_user.id}).execute())
-
-    subscribe = await channelsCheckFunc(message.from_user.id)
-    if subscribe:
+    try:
         with db:
-            lang = Users.get(Users.user_id == message.from_user.id)
-            if lang.lang != 'no':
+            # Users.get_or_create(user_id=message.from_user.id, first_name=message.from_user.first_name, lang='no', data=str(datetime.datetime.now().strftime("%d/%m/%Y")))
+            Users.insert(user_id=message.from_user.id, first_name=message.from_user.first_name, lang='uz', data=str(datetime.datetime.now().strftime("%d/%m/%Y"))).on_conflict(
+                conflict_target=(Users.user_id,), preserve=(Users.data,),
+                update={Users.user_id: message.from_user.id}).execute()
+        subscribe = await channelsCheckFunc(message.from_user.id)
+        if subscribe:
+            lang = ''
+            with db:
+                for l in Users.select().where(Users.user_id == message.from_user.id):
+                    lang = l.lang
+            if lang != 'no':
                 user_lang = await checkingUserLangFunc(user_id=message.from_user.id, key='start', first_name=message.from_user.first_name)
-                management = user_lang[1]
                 await message.answer(user_lang[0])
             else:
                 await message.answer(select_lang_uz, reply_markup=select_lang_btns.select_lang_btns)
-    else:
-        user_lang = await checkingUserLangFunc(user_id=message.from_user.id, key='subscribe')
-        await showChannels(message.from_user.id)
-        await message.answer(user_lang, reply_markup=channels_btn.channels_btn)
+        else:
+            user_lang = await checkingUserLangFunc(user_id=message.from_user.id, key='subscribe')
+            await showChannels(message.from_user.id)
+            await message.answer(user_lang, reply_markup=channels_btn.channels_btn)
+    except Exception as e:
+        print(e)
+        # pass
 
 
-
-@dp.message_handler(Command('lang'))
+@dp.message_handler(commands=['lang'])
 async def change_lang(message: Message):
     # await message.answer("Texnik ishlar olib borilyabti iltimos birozdang so`ng urinib kuring!")
     user_lang = await checkingUserLangFunc(user_id=message.from_user.id, key='lang', first_name=message.from_user.first_name)
@@ -47,15 +52,17 @@ async def change_lang(message: Message):
 @dp.callback_query_handler(lang_callback.filter(lang='lang'))
 async def set_user_lang(c: CallbackQuery):
     await c.answer(cache_time=5)
-    with db:
-        lang = Users.get(Users.user_id == c.from_user.id)
-        lang.lang = c.data.split(':')[-1]
-        lang.save()
+    try:
+        with db:
+            lang = Users.get(Users.user_id == c.from_user.id)
+            lang.lang = c.data.split(':')[-1]
+            lang.save()
 
-    user_lang = await checkingUserLangFunc(user_id=c.from_user.id, key='start', first_name=c.from_user.first_name)
-    management = user_lang[1]
-    await bot.edit_message_text(chat_id=c.message.chat.id, message_id=c.message.message_id, text=user_lang[0])
-
+        user_lang = await checkingUserLangFunc(user_id=c.from_user.id, key='start', first_name=c.from_user.first_name)
+        management = user_lang[1]
+        await bot.edit_message_text(chat_id=c.message.chat.id, message_id=c.message.message_id, text=user_lang[0])
+    except:
+        pass
 
 # @dp.callback_query_handler(text='management')
 # async def send_instruction_video(c: CallbackQuery):
